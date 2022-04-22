@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vue Get Web API Data</title>
+  <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+  <script src="https://unpkg.zhimg.com/vue@3.2.31/dist/vue.global.js"></script>
+  <script src="https://unpkg.zhimg.com/axios@0.19.2/dist/axios.min.js"></script>
+  <script src="//unpkg.com/element-plus"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-echarts@6.0.2"></script>
+  <style type="text/css">
+    #main {
+      margin: 0 auto;
+      width: 70%;
+    }
+
+  </style>
+</head>
+<body>
+<div id="main">
+    <div>
+        <el-button type="primary" @click="getIotDatas">载入数据</el-button>
+    </div>
+    <div v-if="iotDatas.length>0">
+      <div style="margin-top: 20px;">
+        <el-table :data="iotDatas" style="width:100%" border>
+          <el-table-column align="center" prop="time" label="时间"></el-table-column>
+          <el-table-column align="center" prop="temperature" label="温度(℃)"></el-table-column>
+          <el-table-column align="center" prop="Humidity" label="湿度(%rh)"></el-table-column>
+        </el-table>
+      </div>
+      <div style="height: 400px;width: 100%; margin-top: 20px">
+        <v-chart autoresize :option="option" />
+      </div>
+    </div>
+</div>
+
+<script>
+const VueApp = {
+  data() {
+    return {
+      iotDatas:[],
+      option: {}
+    }
+  },
+  mounted() {
+    this.option = {
+      title : {
+        text: "温度变化曲线",
+        left: "center"
+      },
+      tooltip: {
+        formatter: '{c0} °C',
+        trigger: 'axis'
+      },
+      xAxis: {
+        name: '时间',
+        type: 'category',
+      },
+      yAxis: {
+        name: '温度(°C)',
+        type: 'value',
+        axisLabel: {
+          formatter: '{value} °C'
+        }
+      },
+      series: [{
+        type: 'line',
+        smooth: true
+      }]
+    }
+  },
+  methods: {
+    getIotDatas() {
+      axios
+        .get('/iotDatas')
+        .then(response => {
+                this.iotDatas = response.data.iotDatas
+                this.option.xAxis.data = this.iotDatas.map(x => x.time)
+                this.option.series[0].data = this.iotDatas.map(x => x.temperature)
+            })
+        .catch(function (error) {
+          console.log(error);
+      });
+    }
+  },
+  created(){
+  	this.timer=setInterval(this.getIotDatas(),1000);
+  	},
+  beforeDestroy(){
+  	clearInterval(this.timer);
+  	}
+};
+
+
+
+const app = Vue.createApp(VueApp);
+app.use(ElementPlus);
+app.component("v-chart", VueECharts)
+app.mount('#main');
+</script>
+</body>
+</html>
